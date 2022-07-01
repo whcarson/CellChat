@@ -17,7 +17,10 @@ options(stringsAsFactors = FALSE)
 
 Read in Sequencing Matrix
 ```{r}
-LCMA01_BEVR_CD31.data <- ReadMtx(mtx = "../Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/matrix.mtx.gz", features = "../Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/features.tsv.gz", cells = "../Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/barcodes.tsv.gz")
+LCMA01_BEVR_CD31.data <- ReadMtx(
+    mtx = "../../UChicago/Internships etc/Internship Opportunities/Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/matrix.mtx.gz",
+    features = "../../UChicago/Internships etc/Internship Opportunities/Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/features.tsv.gz",
+    cells = "../../UChicago/Internships etc/Internship Opportunities/Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/barcodes.tsv.gz")
 
 
 
@@ -54,6 +57,9 @@ DimPlot(LCMA01_BEVR_CD31, reduction="umap")
 
 Create a cell chat
 ```{r}
+levels(LCMA01_BEVR_CD31$seurat_clusters) <- c(
+    "A", "B", "C", "D", "E", "F", "G",
+    "H", "I", "J", "K", "L", "M")
 LCMA01_BEVR_CD31_Chat <- createCellChat(object = LCMA01_BEVR_CD31, group.by="seurat_clusters")
 ```
 

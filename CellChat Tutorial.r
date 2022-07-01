@@ -5,10 +5,13 @@ library(dplyr)
 library(Seurat)
 options(stringsAsFactors = FALSE)
 
+directory_string <- paste("../../UChicago/Internships etc/",
+    "Internship Opportunities/",
+    "Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/", sep="")
 lcma01_bevr_cd31_mtx <- ReadMtx(
-    mtx = "../../UChicago/Internships etc/Internship Opportunities/Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/matrix.mtx.gz",
-    features = "../../UChicago/Internships etc/Internship Opportunities/Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/features.tsv.gz",
-    cells = "../../UChicago/Internships etc/Internship Opportunities/Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/barcodes.tsv.gz")
+    mtx = paste(directory_string, "matrix.mtx.gz", sep=""),
+    features = paste(directory_string, "features.tsv.gz", sep=""),
+    cells = paste(directory_string, "barcodes.tsv.gz", sep=""))
 
 lcma01_bevr_cd31 <- CreateSeuratObject(counts = lcma01_bevr_cd31_mtx)
 
@@ -61,7 +64,7 @@ lcma01_bevr_cd31_chat@DB <- cell_chat_db_use
 
 # subset the expression data of signaling genes for saving computation cost
 lcma01_bevr_cd31_chat <- subsetData(lcma01_bevr_cd31_chat)
-future::plan("multiprocess", workers = 4) # do parallel
+# future::plan("multiprocess", workers = 4) # do parallel
 lcma01_bevr_cd31_chat <- identifyOverExpressedGenes(lcma01_bevr_cd31_chat)
 lcma01_bevr_cd31_chat <- identifyOverExpressedInteractions(
     lcma01_bevr_cd31_chat)
@@ -75,3 +78,6 @@ lcma01_bevr_cd31_chat <- computeCommunProb(lcma01_bevr_cd31_chat)
 # if there are only few number of cells in certain cell groups
 lcma01_bevr_cd31_chat <- filterCommunication(
     lcma01_bevr_cd31_chat, min.cells = 10)
+
+lcma01_bevr_cd31_df_lr <- subsetCommunication(lcma01_bevr_cd31_chat)
+lcma01_bevr_cd31_df_path <- subsetCommunication(lcma01_bevr_cd31_chat)

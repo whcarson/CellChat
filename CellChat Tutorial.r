@@ -43,14 +43,10 @@ lcma01_bevr_cd31 <- FindClusters(lcma01_bevr_cd31, resolution = 0.5)
 
 lcma01_bevr_cd31 <- RunUMAP(lcma01_bevr_cd31, dims = 1:10)
 DimPlot(lcma01_bevr_cd31, reduction = "umap")
-levels(lcma01_bevr_cd31$seurat_clusters) <- c(
-    "A", "B", "C", "D", "E", "F", "G",
-    "H", "I", "J", "K", "L", "M")
+lcma01_bevr_cd31$seurat_clusters <- as.factor(as.numeric(as.character(lcma01_bevr_cd31$seurat_clusters)) + 1)
 
 lcma01_bevr_cd31_chat <- createCellChat(
     object = lcma01_bevr_cd31, group.by = "seurat_clusters")
-
-lcma01_bevr_cd31_chat@idents <- droplevels(lcma01_bevr_cd31_chat@idents, c("M"))
 
 
 "Set ligand-receptor interaction db"

@@ -46,7 +46,7 @@ lcma01_bevr_cd31_chat <- createCellChat(
     object = lcma01_bevr_cd31, group.by = "seurat_clusters")
 
 "Set ligand-receptor interaction db"
-cell_chat_db <- cell_chat_db.human
+cell_chat_db <- CellChatDB.human
 showDatabaseCategory(cell_chat_db)
 dplyr::glimpse(cell_chat_db$interaction)
 

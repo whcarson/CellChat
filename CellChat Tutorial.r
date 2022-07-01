@@ -5,10 +5,11 @@ library(dplyr)
 library(Seurat)
 options(stringsAsFactors = FALSE)
 
-directory_string <- paste("../../UChicago/Internships etc/",
-    "Internship Opportunities/",
-    "Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/",
-    sep = "")
+directory_string <- paste("C:/Users/19193/OneDrive - The University of Chicago",
+                          "/Documents/UChicago/Internships etc/",
+                          "Internship Opportunities/Aghi Lab/CD31 sorted/",
+                          "LCMA01_BEVR_CD31/filtered_feature_bc_matrix/",
+                          sep = "")
 lcma01_bevr_cd31_mtx <- ReadMtx(
     mtx = paste(directory_string, "matrix.mtx.gz", sep = ""),
     features = paste(directory_string, "features.tsv.gz", sep = ""),
@@ -16,11 +17,11 @@ lcma01_bevr_cd31_mtx <- ReadMtx(
 
 lcma01_bevr_cd31 <- CreateSeuratObject(counts = lcma01_bevr_cd31_mtx)
 
-lcma01_bevr_cd31[["percent.mt"]] <- PercentageFeatureSet(
-    lcma01_bevr_cd31, pattern = "^MT-")
-lcma01_bevr_cd31 <- subset(
-    lcma01_bevr_cd31, subset = nFeature_RNA > 200 &
-     nFeature_RNA < 2500 & percent.mt < 5)
+# lcma01_bevr_cd31[["percent.mt"]] <- PercentageFeatureSet(
+#     lcma01_bevr_cd31, pattern = "^MT-")
+# lcma01_bevr_cd31 <- subset(
+#     lcma01_bevr_cd31, subset = nFeature_RNA > 200 &
+#      nFeature_RNA < 2500 & percent.mt < 5)
 
 lcma01_bevr_cd31 <- NormalizeData(
     lcma01_bevr_cd31, normalization.method = "LogNormalize",
@@ -49,6 +50,9 @@ levels(lcma01_bevr_cd31$seurat_clusters) <- c(
 lcma01_bevr_cd31_chat <- createCellChat(
     object = lcma01_bevr_cd31, group.by = "seurat_clusters")
 
+lcma01_bevr_cd31_chat@idents <- droplevels(lcma01_bevr_cd31_chat@idents, c("M"))
+
+
 "Set ligand-receptor interaction db"
 cell_chat_db <- CellChatDB.human
 showDatabaseCategory(cell_chat_db)
@@ -65,10 +69,8 @@ lcma01_bevr_cd31_chat@DB <- cell_chat_db_use
 
 # subset the expression data of signaling genes for saving computation cost
 lcma01_bevr_cd31_chat <- subsetData(lcma01_bevr_cd31_chat)
-# future::plan("multisession", workers = 4) # do parallel
 lcma01_bevr_cd31_chat <- identifyOverExpressedGenes(lcma01_bevr_cd31_chat)
-lcma01_bevr_cd31_chat <- identifyOverExpressedInteractions(
-    lcma01_bevr_cd31_chat)
+lcma01_bevr_cd31_chat <- identifyOverExpressedInteractions(lcma01_bevr_cd31_chat)
 
 # project gene expression data onto PP
 # (Optional: when running it, USER should set `raw.use = FALSE`
@@ -83,3 +85,7 @@ lcma01_bevr_cd31_chat <- filterCommunication(
 lcma01_bevr_cd31_df_lr <- subsetCommunication(lcma01_bevr_cd31_chat)
 lcma01_bevr_cd31_df_path <- subsetCommunication(
     lcma01_bevr_cd31_chat, slot.name = "netP")
+
+lcma01_bevr_cd31_chat <- aggregateNet(lcma01_bevr_cd31_chat)
+
+unique(lcma01_bevr_cd31_chat@idents)

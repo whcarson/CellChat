@@ -17,31 +17,44 @@ options(stringsAsFactors = FALSE)
 
 Read in Sequencing Matrix
 ```{r}
-LCMA01_BEVR_CD31_Mat <- ReadMtx(mtx = "../Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/matrix.mtx.gz", features = "../Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/features.tsv.gz", cells = "../Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/barcodes.tsv.gz")
+LCMA01_BEVR_CD31.data <- ReadMtx(mtx = "../Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/matrix.mtx.gz", features = "../Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/features.tsv.gz", cells = "../Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/barcodes.tsv.gz")
 
-LCMA01_BEVR_CD31 <- CreateSeuratObject(counts = LCMA01_BEVR_CD31_Mat)
+
+
+LCMA01_BEVR_CD31 <- CreateSeuratObject(counts = LCMA01_BEVR_CD31.data)
+
+
 
 ```
 
-Create Clusters Using Seurat
+Seurat Data Prep
 ```{r}
 LCMA01_BEVR_CD31[["percent.mt"]] <- PercentageFeatureSet(LCMA01_BEVR_CD31, pattern="^MT-")
-
 LCMA01_BEVR_CD31 <- subset(LCMA01_BEVR_CD31, subset= nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
 
 LCMA01_BEVR_CD31 <- NormalizeData(LCMA01_BEVR_CD31, normalization.method = "LogNormalize", scale.factor = 10000)
 
+LCMA01_BEVR_CD31 <- FindVariableFeatures(LCMA01_BEVR_CD31, selection.method = "vst", nfeatures=2000)
+
 all.genes <- rownames(LCMA01_BEVR_CD31)
 
-LCMA01_BEVR_CD31 <- ScaleData(LCMA01_BEVR_CD31, features = all.genes)
-
+LCMA01_BEVR_CD31 <- ScaleData(LCMA01_BEVR_CD31, block.size = 1000000)
+```
+Create Clusters
+```{r}
 LCMA01_BEVR_CD31 <- RunPCA(LCMA01_BEVR_CD31,  features=VariableFeatures(object=LCMA01_BEVR_CD31))
-print(LCMA01_BEVR_CD31[["pca"]], dims=1:5, nfeatures = 5)
+print(LCMA01_BEVR_CD31[["pca"]], dims=1:15, nfeatures = 15)
+
+LCMA01_BEVR_CD31 <- FindNeighbors(LCMA01_BEVR_CD31, dims=1:10)
+LCMA01_BEVR_CD31 <- FindClusters(LCMA01_BEVR_CD31, resolution=0.5)
+
+LCMA01_BEVR_CD31 <- RunUMAP(LCMA01_BEVR_CD31, dims=1:10)
+DimPlot(LCMA01_BEVR_CD31, reduction="umap")
 ```
 
 Create a cell chat
 ```{r}
-LCMA01_BEVR_CD31_Chat <- createCellChat(object = LCMA01_BEVR_CD31, group.by="labels")
+LCMA01_BEVR_CD31_Chat <- createCellChat(object = LCMA01_BEVR_CD31, group.by="seurat_clusters")
 ```
 
 ```{r}

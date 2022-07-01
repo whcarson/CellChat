@@ -5,8 +5,7 @@ library(dplyr)
 library(Seurat)
 options(stringsAsFactors = FALSE)
 
-
-LCMA01_BEVR_CD31.data <- ReadMtx(mtx = "../Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/matrix.mtx.gz", features = "../Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/features.tsv.gz", cells = "../Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/barcodes.tsv.gz")
+LCMA01_BEVR_CD31.data <- ReadMtx(mtx = "UChicago/Internships etc/Internship Opportunities/Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/matrix.mtx.gz", features = "UChicago/Internships etc/Internship Opportunities/Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/features.tsv.gz", cells = "UChicago/Internships etc/Internship Opportunities/Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/barcodes.tsv.gz")
 
 LCMA01_BEVR_CD31 <- CreateSeuratObject(counts = LCMA01_BEVR_CD31.data)
 

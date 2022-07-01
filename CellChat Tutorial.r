@@ -7,11 +7,12 @@ options(stringsAsFactors = FALSE)
 
 directory_string <- paste("../../UChicago/Internships etc/",
     "Internship Opportunities/",
-    "Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/", sep="")
+    "Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/",
+    sep = "")
 lcma01_bevr_cd31_mtx <- ReadMtx(
-    mtx = paste(directory_string, "matrix.mtx.gz", sep=""),
-    features = paste(directory_string, "features.tsv.gz", sep=""),
-    cells = paste(directory_string, "barcodes.tsv.gz", sep=""))
+    mtx = paste(directory_string, "matrix.mtx.gz", sep = ""),
+    features = paste(directory_string, "features.tsv.gz", sep = ""),
+    cells = paste(directory_string, "barcodes.tsv.gz", sep = ""))
 
 lcma01_bevr_cd31 <- CreateSeuratObject(counts = lcma01_bevr_cd31_mtx)
 
@@ -64,12 +65,12 @@ lcma01_bevr_cd31_chat@DB <- cell_chat_db_use
 
 # subset the expression data of signaling genes for saving computation cost
 lcma01_bevr_cd31_chat <- subsetData(lcma01_bevr_cd31_chat)
-# future::plan("multiprocess", workers = 4) # do parallel
+# future::plan("multisession", workers = 4) # do parallel
 lcma01_bevr_cd31_chat <- identifyOverExpressedGenes(lcma01_bevr_cd31_chat)
 lcma01_bevr_cd31_chat <- identifyOverExpressedInteractions(
     lcma01_bevr_cd31_chat)
 
-# project gene expression data onto PPI
+# project gene expression data onto PP
 # (Optional: when running it, USER should set `raw.use = FALSE`
 # in the function `computeCommunProb()` in order to use the projected data)
 
@@ -80,4 +81,5 @@ lcma01_bevr_cd31_chat <- filterCommunication(
     lcma01_bevr_cd31_chat, min.cells = 10)
 
 lcma01_bevr_cd31_df_lr <- subsetCommunication(lcma01_bevr_cd31_chat)
-lcma01_bevr_cd31_df_path <- subsetCommunication(lcma01_bevr_cd31_chat)
+lcma01_bevr_cd31_df_path <- subsetCommunication(
+    lcma01_bevr_cd31_chat, slot.name = "netP")

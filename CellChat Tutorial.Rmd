@@ -17,16 +17,19 @@ options(stringsAsFactors = FALSE)
 
 Read in Sequencing Matrix
 ```{r}
-LCMA01_BEVR_CD31.data <- ReadMtx(
-    mtx = "../../UChicago/Internships etc/Internship Opportunities/Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/matrix.mtx.gz",
-    features = "../../UChicago/Internships etc/Internship Opportunities/Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/features.tsv.gz",
-    cells = "../../UChicago/Internships etc/Internship Opportunities/Aghi Lab/CD31 sorted/LCMA01_BEVR_CD31/filtered_feature_bc_matrix/barcodes.tsv.gz")
+directory_string <- paste("C:/Users/19193/OneDrive - The University of Chicago",
+                          "/Documents/UChicago/Internships etc/",
+                          "Internship Opportunities/Aghi Lab/CD31 sorted/",
+                          "LCMA01_BEVR_CD31/filtered_feature_bc_matrix/",
+                          sep = "")
 
+LCMA01_BEVR_CD31.data <- ReadMtx(
+    mtx = paste(directory_string, "matrix.mtx.gz", sep = ""),
+    features = paste(directory_string, "features.tsv.gz", sep = ""),
+    cells = paste(directory_string, "barcodes.tsv.gz", sep = ""))
 
 
 LCMA01_BEVR_CD31 <- CreateSeuratObject(counts = LCMA01_BEVR_CD31.data)
-
-
 
 ```
 
@@ -101,6 +104,42 @@ LCMA01_BEVR_CD31_Chat <- filterCommunication(LCMA01_BEVR_CD31_Chat, min.cells = 
 ```{r}
 LCMA01_BEVR_CD31_Chat_DF_LR <- subsetCommunication(LCMA01_BEVR_CD31_Chat)
 LCMA01_BEVR_CD31_Chat_DF_Net <- subsetCommunication(LCMA01_BEVR_CD31_Chat, slot.name = "netP")
+```
+
+```{r}
+LCMA01_BEVR_CD31_Chat <- computeCommunProbPathway(LCMA01_BEVR_CD31_Chat)
+```
+
+```{r}
+#Generate interaction network
+LCMA01_BEVR_CD31_Chat <- aggregateNet(LCMA01_BEVR_CD31_Chat)
+
+#Visualize interaction network
+groupSize <- as.numeric(table(LCMA01_BEVR_CD31_Chat@idents))
+par(mfrow = c(1,2), xpd=TRUE)
+netVisual_circle(LCMA01_BEVR_CD31_Chat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
+netVisual_circle(LCMA01_BEVR_CD31_Chat@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+```
+
+```{r}
+#Visualize MHC-II pathway interactions
+netVisual_circle(LCMA01_BEVR_CD31_Chat@netP$prob[,,"MHC-II"])
+```
+
+```{r}
+#Generate Plots
+plots <- c()
+par(mfrow=c(5,5))
+par(mai=c(0.1, 0.1, 0.1, 0.1))
+for (pathway in LCMA01_BEVR_CD31_Chat@netP$pathways){
+  print(pathway)
+  netVisual_circle(LCMA01_BEVR_CD31_Chat@netP$prob[,,pathway])
+}
+
+
+```
+
+```{r}
 ```
 
 

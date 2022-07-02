@@ -10,78 +10,75 @@ directory_string <- paste("C:/Users/19193/OneDrive - The University of Chicago",
                           "Internship Opportunities/Aghi Lab/CD31 sorted/",
                           "LCMA01_BEVR_CD31/filtered_feature_bc_matrix/",
                           sep = "")
-lcma01_bevr_cd31_mtx <- ReadMtx(
+
+LCMA01_BEVR_CD31_MTX <- ReadMtx(
     mtx = paste(directory_string, "matrix.mtx.gz", sep = ""),
     features = paste(directory_string, "features.tsv.gz", sep = ""),
     cells = paste(directory_string, "barcodes.tsv.gz", sep = ""))
 
-lcma01_bevr_cd31 <- CreateSeuratObject(counts = lcma01_bevr_cd31_mtx)
 
-# lcma01_bevr_cd31[["percent.mt"]] <- PercentageFeatureSet(
-#     lcma01_bevr_cd31, pattern = "^MT-")
-# lcma01_bevr_cd31 <- subset(
-#     lcma01_bevr_cd31, subset = nFeature_RNA > 200 &
-#      nFeature_RNA < 2500 & percent.mt < 5)
+LCMA01_BEVR_CD31 <- CreateSeuratObject(counts = LCMA01_BEVR_CD31_MTX)
 
-lcma01_bevr_cd31 <- NormalizeData(
-    lcma01_bevr_cd31, normalization.method = "LogNormalize",
-    scale.factor = 10000)
+LCMA01_BEVR_CD31[["percent.mt"]] <- PercentageFeatureSet(LCMA01_BEVR_CD31, pattern="^MT-")
+LCMA01_BEVR_CD31 <- subset(LCMA01_BEVR_CD31, subset= nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
 
-lcma01_bevr_cd31 <- FindVariableFeatures(
-    lcma01_bevr_cd31, selection.method = "vst", nfeatures = 2000)
+LCMA01_BEVR_CD31 <- NormalizeData(LCMA01_BEVR_CD31, normalization.method = "LogNormalize", scale.factor = 10000)
 
-all_genes <- rownames(lcma01_bevr_cd31)
+LCMA01_BEVR_CD31 <- FindVariableFeatures(LCMA01_BEVR_CD31, selection.method = "vst", nfeatures=2000)
 
-lcma01_bevr_cd31 <- ScaleData(lcma01_bevr_cd31, block.size = 1000)
+all.genes <- rownames(LCMA01_BEVR_CD31)
 
-lcma01_bevr_cd31 <- RunPCA(
-    lcma01_bevr_cd31,  features = VariableFeatures(object = lcma01_bevr_cd31))
-print(lcma01_bevr_cd31[["pca"]], dims = 1:15, nfeatures = 15)
+LCMA01_BEVR_CD31 <- ScaleData(LCMA01_BEVR_CD31, block.size = 1000)
 
-lcma01_bevr_cd31 <- FindNeighbors(lcma01_bevr_cd31, dims = 1:10)
-lcma01_bevr_cd31 <- FindClusters(lcma01_bevr_cd31, resolution = 0.5)
+LCMA01_BEVR_CD31 <- RunPCA(LCMA01_BEVR_CD31,  features=VariableFeatures(object=LCMA01_BEVR_CD31))
+print(LCMA01_BEVR_CD31[["pca"]], dims=1:15, nfeatures = 15)
 
-lcma01_bevr_cd31 <- RunUMAP(lcma01_bevr_cd31, dims = 1:10)
-DimPlot(lcma01_bevr_cd31, reduction = "umap")
-lcma01_bevr_cd31$seurat_clusters <- as.factor(as.numeric(as.character(lcma01_bevr_cd31$seurat_clusters)) + 1)
+LCMA01_BEVR_CD31 <- FindNeighbors(LCMA01_BEVR_CD31, dims=1:10)
+LCMA01_BEVR_CD31 <- FindClusters(LCMA01_BEVR_CD31, resolution=0.5)
 
-lcma01_bevr_cd31_chat <- createCellChat(
-    object = lcma01_bevr_cd31, group.by = "seurat_clusters")
+LCMA01_BEVR_CD31 <- RunUMAP(LCMA01_BEVR_CD31, dims=1:10)
+DimPlot(LCMA01_BEVR_CD31, reduction="umap")
+
+levels(LCMA01_BEVR_CD31$seurat_clusters) <- c(
+  "A", "B", "C", "D", "E", "F", "G",
+  "H", "I", "J", "K", "L", "M")
+LCMA01_BEVR_CD31_Chat <- createCellChat(object = LCMA01_BEVR_CD31, group.by="seurat_clusters")
+
+
+
 
 
 "Set ligand-receptor interaction db"
-cell_chat_db <- CellChatDB.human
-showDatabaseCategory(cell_chat_db)
-dplyr::glimpse(cell_chat_db$interaction)
+CellChatDB <- CellChatDB.human
+showDatabaseCategory(CellChatDB)
+dplyr::glimpse(CellChatDB$interaction)
 
 # use a subset of CellChatDB for cell-cell communication analysis
-# CellChatDB.use <- subsetDB(
-    # CellChatDB, search = "Secreted Signaling") # use Secreted Signaling
+# CellChatDB.use <- subsetDB(CellChatDB, search = "Secreted Signaling") # use Secreted Signaling
 # use all CellChatDB for cell-cell communication analysis
-cell_chat_db_use <- cell_chat_db # simply use the default CellChatDB
+CellChatDB.use <- CellChatDB # simply use the default CellChatDB
 
 # set the used database in the object
-lcma01_bevr_cd31_chat@DB <- cell_chat_db_use
+LCMA01_BEVR_CD31_Chat@DB <- CellChatDB.use
+
+
 
 # subset the expression data of signaling genes for saving computation cost
-lcma01_bevr_cd31_chat <- subsetData(lcma01_bevr_cd31_chat)
-lcma01_bevr_cd31_chat <- identifyOverExpressedGenes(lcma01_bevr_cd31_chat)
-lcma01_bevr_cd31_chat <- identifyOverExpressedInteractions(lcma01_bevr_cd31_chat)
+LCMA01_BEVR_CD31_Chat <- subsetData(LCMA01_BEVR_CD31_Chat) # This step is necessary even if using the whole database
+future::plan("multiprocess", workers = 4) # do parallel
+LCMA01_BEVR_CD31_Chat <- identifyOverExpressedGenes(LCMA01_BEVR_CD31_Chat)
+LCMA01_BEVR_CD31_Chat <- identifyOverExpressedInteractions(LCMA01_BEVR_CD31_Chat)
 
-# project gene expression data onto PP
-# (Optional: when running it, USER should set `raw.use = FALSE`
-# in the function `computeCommunProb()` in order to use the projected data)
+# project gene expression data onto PPI (Optional: when running it, USER should set `raw.use = FALSE` in the function `computeCommunProb()` in order to use the projected data)
+# cellchat <- projectData(cellchat, PPI.human)
 
-lcma01_bevr_cd31_chat <- computeCommunProb(lcma01_bevr_cd31_chat)
-# Filter out the cell-cell communication
-# if there are only few number of cells in certain cell groups
-lcma01_bevr_cd31_chat <- filterCommunication(
-    lcma01_bevr_cd31_chat, min.cells = 10)
 
-lcma01_bevr_cd31_df_lr <- subsetCommunication(lcma01_bevr_cd31_chat)
-lcma01_bevr_cd31_df_path <- subsetCommunication(
-    lcma01_bevr_cd31_chat, slot.name = "netP")
 
-lcma01_bevr_cd31_chat <- aggregateNet(lcma01_bevr_cd31_chat)
 
-unique(lcma01_bevr_cd31_chat@idents)
+LCMA01_BEVR_CD31_Chat <- computeCommunProb(LCMA01_BEVR_CD31_Chat)
+# Filter out the cell-cell communication if there are only few number of cells in certain cell groups
+LCMA01_BEVR_CD31_Chat <- filterCommunication(LCMA01_BEVR_CD31_Chat, min.cells = 10)
+
+
+
+

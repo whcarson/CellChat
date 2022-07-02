@@ -128,12 +128,11 @@ netVisual_circle(LCMA01_BEVR_CD31_Chat@netP$prob[,,"MHC-II"])
 
 ```{r}
 #Generate Plots
-plots <- c()
 par(mfrow=c(5,5))
 par(mai=c(0.1, 0.1, 0.1, 0.1))
 for (pathway in LCMA01_BEVR_CD31_Chat@netP$pathways){
   print(pathway)
-  netVisual_circle(LCMA01_BEVR_CD31_Chat@netP$prob[,,pathway])
+  netVisual_circle(LCMA01_BEVR_CD31_Chat@netP$prob[,,pathway], title.name = pathway)
 }
 
 

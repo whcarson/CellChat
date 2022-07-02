@@ -44,7 +44,7 @@ LCMA01_BEVR_CD31 <- FindVariableFeatures(LCMA01_BEVR_CD31, selection.method = "v
 
 all.genes <- rownames(LCMA01_BEVR_CD31)
 
-LCMA01_BEVR_CD31 <- ScaleData(LCMA01_BEVR_CD31, block.size = 1000)
+LCMA01_BEVR_CD31 <- ScaleData(LCMA01_BEVR_CD31, features = all.genes, block.size = 1000)
 ```
 Create Clusters
 ```{r}
@@ -58,11 +58,32 @@ LCMA01_BEVR_CD31 <- RunUMAP(LCMA01_BEVR_CD31, dims=1:10)
 DimPlot(LCMA01_BEVR_CD31, reduction="umap")
 ```
 
-Create a cell chat
+Create Cell Chat
 ```{r}
+#Identify Cluster Markers
+
+markerA <- FindMarkers(LCMA01_BEVR_CD31, ident.1=0, min.pct=0.1)
+markerB <- FindMarkers(LCMA01_BEVR_CD31, ident.1=1, min.pct=0.1)
+markerC <- FindMarkers(LCMA01_BEVR_CD31, ident.1=2, min.pct=0.1)
+markerD <- FindMarkers(LCMA01_BEVR_CD31, ident.1=3, min.pct=0.1)
+markerE <- FindMarkers(LCMA01_BEVR_CD31, ident.1=4, min.pct=0.1)
+markerF <- FindMarkers(LCMA01_BEVR_CD31, ident.1=5, min.pct=0.1)
+markerG <- FindMarkers(LCMA01_BEVR_CD31, ident.1=6, min.pct=0.1)
+markerH <- FindMarkers(LCMA01_BEVR_CD31, ident.1=7, min.pct=0.1)
+markerI <- FindMarkers(LCMA01_BEVR_CD31, ident.1=8, min.pct=0.1)
+markerJ <- FindMarkers(LCMA01_BEVR_CD31, ident.1=9, min.pct=0.1)
+markerK <- FindMarkers(LCMA01_BEVR_CD31, ident.1=10, min.pct=0.1)
+markerL <- FindMarkers(LCMA01_BEVR_CD31, ident.1=11, min.pct=0.1)
+markerM <- FindMarkers(LCMA01_BEVR_CD31, ident.1=12, min.pct=0.1)
+
+
+
+#Assign New Cluster Names
 levels(LCMA01_BEVR_CD31$seurat_clusters) <- c(
     "A", "B", "C", "D", "E", "F", "G",
     "H", "I", "J", "K", "L", "M")
+
+#Make Cell Chat Object
 LCMA01_BEVR_CD31_Chat <- createCellChat(object = LCMA01_BEVR_CD31, group.by="seurat_clusters")
 ```
 

@@ -41,7 +41,7 @@ LCMA01_BEVR_CD31 <- FindVariableFeatures(LCMA01_BEVR_CD31, selection.method = "v
 
 all.genes <- rownames(LCMA01_BEVR_CD31)
 
-LCMA01_BEVR_CD31 <- ScaleData(LCMA01_BEVR_CD31, block.size = 1000000)
+LCMA01_BEVR_CD31 <- ScaleData(LCMA01_BEVR_CD31, block.size = 1000)
 ```
 Create Clusters
 ```{r}
@@ -83,7 +83,6 @@ LCMA01_BEVR_CD31_Chat@DB <- CellChatDB.use
 ```{r}
 # subset the expression data of signaling genes for saving computation cost
 LCMA01_BEVR_CD31_Chat <- subsetData(LCMA01_BEVR_CD31_Chat) # This step is necessary even if using the whole database
-future::plan("multiprocess", workers = 4) # do parallel
 LCMA01_BEVR_CD31_Chat <- identifyOverExpressedGenes(LCMA01_BEVR_CD31_Chat)
 LCMA01_BEVR_CD31_Chat <- identifyOverExpressedInteractions(LCMA01_BEVR_CD31_Chat)
 
@@ -97,6 +96,11 @@ LCMA01_BEVR_CD31_Chat <- computeCommunProb(LCMA01_BEVR_CD31_Chat)
 # Filter out the cell-cell communication if there are only few number of cells in certain cell groups
 LCMA01_BEVR_CD31_Chat <- filterCommunication(LCMA01_BEVR_CD31_Chat, min.cells = 10)
 
+```
+
+```{r}
+LCMA01_BEVR_CD31_Chat_DF_LR <- subsetCommunication(LCMA01_BEVR_CD31_Chat)
+LCMA01_BEVR_CD31_Chat_DF_Net <- subsetCommunication(LCMA01_BEVR_CD31_Chat, slot.name = "netP")
 ```
 
 

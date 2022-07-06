@@ -6,15 +6,31 @@ library(patchwork)
 library(dplyr)
 library(Seurat)
 options(stringsAsFactors = FALSE)
+seurats <- c()
+names <- c()
 ```
 
 Read in Sequencing Matrix
 ```{r}
-file_name <- "LCMA01_BEVR_CD31"
-position <- 1
-seurats <- c()
+file_names <- c("LCMA01_BEVR_CD31")
+positions <- c(1)
 
-make_Seurat <- function(file_name){
+duplicate <- FALSE
+
+for (i in 1:length(file_names)){
+  file_name <- file_names[i]
+  for (name in names){
+    if (file_name == name){
+      duplicate <- TRUE
+    }
+  }
+  if (duplicate) {
+    duplicate <- FALSE
+    break
+  } else {
+    names <- append(names, file_name)
+  }
+  position <- positions[i]
   directory_string <- paste("C:/Users/19193/OneDrive - The University of Chicago",
                             "/Documents/UChicago/Internships etc/",
                             "Internship Opportunities/Aghi Lab/CD31 sorted/",
@@ -22,76 +38,90 @@ make_Seurat <- function(file_name){
                             sep = "")
   
   
-  assign(paste0(file_name, "_Mtx"), ReadMtx(
+  MTX <- ReadMtx(
     mtx = paste(directory_string, "matrix.mtx.gz", sep = ""),
     features = paste(directory_string, "features.tsv.gz", sep = ""),
-    cells = paste(directory_string, "barcodes.tsv.gz", sep = ""))) 
+    cells = paste(directory_string, "barcodes.tsv.gz", sep = ""))
   
-  append(seurats, assign(file_name, CreateSeuratObject(counts = LCMA01_BEVR_CD31_Mtx)))
+  seurat <- CreateSeuratObject(counts = MTX)
+  seurat <- subset(seurat, subset = nFeature_RNA > 200 & nFeature_RNA < 2500)
+  attributes(seurat)$name <- file_name
+  seurats <- append(seurats, seurat, position)
 }
-
-make_Seurat(file_name)
 
 ```
 
 Seurat Data Prep
 ```{r}
-for()
 
-LCMA01_BEVR_CD31 <- subset(LCMA01_BEVR_CD31, subset= nFeature_RNA > 200 & nFeature_RNA < 2500)
+for (i in 1:length(seurats)){
+  seurat <- seurats[[i]]
+  seurats[[i]] <- NormalizeData(seurats[[i]], normalization.method = "LogNormalize", scale.factor = 10000)
+  seurats[[i]] <- FindVariableFeatures(seurats[[i]], selection.method = "vst", nfeatures=2000)
+  all_genes <- rownames(seurats[[i]])
+  seurats[[i]]  <- ScaleData(seurats[[i]], features = all_genes, block.size = 1000)
+}
 
-LCMA01_BEVR_CD31 <- NormalizeData(LCMA01_BEVR_CD31, normalization.method = "LogNormalize", scale.factor = 10000)
-
-LCMA01_BEVR_CD31 <- FindVariableFeatures(LCMA01_BEVR_CD31, selection.method = "vst", nfeatures=2000)
-
-all.genes <- rownames(LCMA01_BEVR_CD31)
-
-LCMA01_BEVR_CD31 <- ScaleData(LCMA01_BEVR_CD31, features = all.genes, block.size = 1000)
+# LCMA01_BEVR_CD31 <- subset(LCMA01_BEVR_CD31, subset= nFeature_RNA > 200 & nFeature_RNA < 2500)
+# 
+# LCMA01_BEVR_CD31 <- NormalizeData(LCMA01_BEVR_CD31, normalization.method = "LogNormalize", scale.factor = 10000)
+# 
+# LCMA01_BEVR_CD31 <- FindVariableFeatures(LCMA01_BEVR_CD31, selection.method = "vst", nfeatures=2000)
+# 
+# all.genes <- rownames(LCMA01_BEVR_CD31)
+# 
+# LCMA01_BEVR_CD31 <- ScaleData(LCMA01_BEVR_CD31, features = all.genes, block.size = 1000)
 ```
 Create Clusters
 ```{r}
-LCMA01_BEVR_CD31 <- RunPCA(LCMA01_BEVR_CD31,  features=VariableFeatures(object=LCMA01_BEVR_CD31))
-print(LCMA01_BEVR_CD31[["pca"]], dims=1:15, nfeatures = 15)
+for (i in 1:length(seurats)){
+  seurats[[i]] <- RunPCA(seurats[[i]],  features=VariableFeatures(object=seurats[[i]]))
+  print(seurats[[i]][["pca"]], dims=1:15, nfeatures = 15)
 
-LCMA01_BEVR_CD31 <- FindNeighbors(LCMA01_BEVR_CD31, dims=1:10)
-LCMA01_BEVR_CD31 <- FindClusters(LCMA01_BEVR_CD31, resolution=0.5)
+  seurats[[i]] <- FindNeighbors(seurats[[i]], dims=1:10)
+  seurats[[i]] <- FindClusters(seurats[[i]], resolution=0.5)
 
-LCMA01_BEVR_CD31 <- RunUMAP(LCMA01_BEVR_CD31, dims=1:10)
-DimPlot(LCMA01_BEVR_CD31, reduction="umap")
+  seurats[[i]] <- RunUMAP(seurats[[i]], dims=1:10)
+  DimPlot(seurats[[i]], reduction="umap")
+}
 ```
 
 Create Cell Chat
 ```{r}
 #Identify Cluster Markers
 
-# for(i in 1:13){
-#   markerName <- paste("marker", intToUtf8(i+64), sep="")
-#   assign(markerName, FindMarkers(LCMA01_BEVR_CD31, ident.1=i-1, min.pct=0.1))
+# for (i in 1:length(seurats)){
+#   seurat <- seurats[[i]]
+#   for(j in 1:length(seurat@meta.data$seurat_clusters)){
+#     markerName <- paste("marker", as.character(i), as.character(j), sep="")
+#     assign(markerName, FindMarkers(LCMA01_BEVR_CD31, ident.1=j-1, min.pct=0.1))
+#   }
 # }
-# markerA <- FindMarkers(LCMA01_BEVR_CD31, ident.1=0, min.pct=0.1)
-# markerB <- FindMarkers(LCMA01_BEVR_CD31, ident.1=1, min.pct=0.1)
-# markerC <- FindMarkers(LCMA01_BEVR_CD31, ident.1=2, min.pct=0.1)
-# markerD <- FindMarkers(LCMA01_BEVR_CD31, ident.1=3, min.pct=0.1)
-# markerE <- FindMarkers(LCMA01_BEVR_CD31, ident.1=4, min.pct=0.1)
-# markerF <- FindMarkers(LCMA01_BEVR_CD31, ident.1=5, min.pct=0.1)
-# markerG <- FindMarkers(LCMA01_BEVR_CD31, ident.1=6, min.pct=0.1)
-# markerH <- FindMarkers(LCMA01_BEVR_CD31, ident.1=7, min.pct=0.1)
-# markerI <- FindMarkers(LCMA01_BEVR_CD31, ident.1=8, min.pct=0.1)
-# markerJ <- FindMarkers(LCMA01_BEVR_CD31, ident.1=9, min.pct=0.1)
-# markerK <- FindMarkers(LCMA01_BEVR_CD31, ident.1=10, min.pct=0.1)
-# markerL <- FindMarkers(LCMA01_BEVR_CD31, ident.1=11, min.pct=0.1)
-# markerM <- FindMarkers(LCMA01_BEVR_CD31, ident.1=12, min.pct=0.1)
 
-
-
-#Assign New Cluster Names
-
-LCMA01_BEVR_CD31$seurat_clusters <- as.factor(as.numeric(as.character(LCMA01_BEVR_CD31$seurat_clusters)) + 1)
-
-#Make Cell Chat Object
-LCMA01_BEVR_CD31_Chat <- createCellChat(object = LCMA01_BEVR_CD31, group.by="seurat_clusters")
+chats <- c()
+chat_names <- c()
+for (i in 1:length(seurats)){
+  #Assign New Cluster Names
+  seurats[[i]]$seurat_clusters <- as.factor(as.numeric(as.character(seurats[[i]]$seurat_clusters)) + 1)
+  
+  #Make Cell Chat Object
+  chat_name <- attributes(seurats[[i]])$name
+  for (c_name in chat_names){
+    if (c_name == chat_name){
+      duplicate <- TRUE
+    }
+  }
+  if (duplicate) {
+    duplicate <- FALSE
+    break
+  } else {
+    names <- append(names, file_name)
+  }
+  chats <- append(chats, createCellChat(object = seurats[[i]], group.by="seurat_clusters"))
+}
 ```
 
+Set Database to Use
 ```{r}
 
 
@@ -106,46 +136,65 @@ dplyr::glimpse(CellChatDB$interaction)
 CellChatDB.use <- CellChatDB # simply use the default CellChatDB
 
 # set the used database in the object
-LCMA01_BEVR_CD31_Chat@DB <- CellChatDB.use
+for (i in 1:length(chats)){
+  chats[[i]]@DB <- CellChatDB.use
+}
 ```
 
+Calculate Relative Expression
 ```{r}
 # subset the expression data of signaling genes for saving computation cost
-LCMA01_BEVR_CD31_Chat <- subsetData(LCMA01_BEVR_CD31_Chat) # This step is necessary even if using the whole database
-LCMA01_BEVR_CD31_Chat <- identifyOverExpressedGenes(LCMA01_BEVR_CD31_Chat)
-LCMA01_BEVR_CD31_Chat <- identifyOverExpressedInteractions(LCMA01_BEVR_CD31_Chat)
+for (i in 1:length(chats)){
+  chats[[i]]@DB <- CellChatDB.use
+  chats[[i]] <- subsetData(chats[[i]]) # This step is necessary even if using the whole database
+  chats[[i]] <- identifyOverExpressedGenes(chats[[i]])
+  chats[[i]] <- identifyOverExpressedInteractions(chats[[i]])
+  
+  # project gene expression data onto PPI (Optional: when running it, USER should set `raw.use = FALSE` in the function `computeCommunProb()` in order to use the projected data)
 
-# project gene expression data onto PPI (Optional: when running it, USER should set `raw.use = FALSE` in the function `computeCommunProb()` in order to use the projected data)
-# LCMA01_BEVR_CD31_Chat <- projectData(LCMA01_BEVR_CD31_Chat, PPI.human)
+  # chats[[i]] <- projectData(chats[[i]], PPI.human)
+}
+
+
+
 
 ```
 
-```{r}
-future::plan("multiprocess", workers = 4)
-LCMA01_BEVR_CD31_Chat <- computeCommunProb(LCMA01_BEVR_CD31_Chat)
-# Filter out the cell-cell communication if there are only few number of cells in certain cell groups
-LCMA01_BEVR_CD31_Chat <- filterCommunication(LCMA01_BEVR_CD31_Chat, min.cells = 10)
+Compute Probability that Two Cell Classes Communicate Through Given Pathway
 
+WARNING: COMPUTATIONALLY EXPENSIVE!!! 
+```{r}
+future::plan("multisession", workers=4)
+for (i in 1:length(chats)){
+  chats[[i]] <- computeCommunProb(chats[[i]])
+  # Filter out the cell-cell communication if there are only few number of cells in certain cell groups
+  chats[[i]] <- filterCommunication(chats[[i]], min.cells = 10)
+}
+```
+Generate Data Frames Containing Communication Networks
+```{r}
+i = 1
+net_DF <- subsetCommunication(chats[[i]])
+netP_DF <- subsetCommunication(chats[[i]], slot.name = "netP")
 ```
 
 ```{r}
-LCMA01_BEVR_CD31_Chat_DF_LR <- subsetCommunication(LCMA01_BEVR_CD31_Chat)
-LCMA01_BEVR_CD31_Chat_DF_Net <- subsetCommunication(LCMA01_BEVR_CD31_Chat, slot.name = "netP")
-```
-
-```{r}
-LCMA01_BEVR_CD31_Chat <- computeCommunProbPathway(LCMA01_BEVR_CD31_Chat)
+for (i in 1:length(chats)){
+  chats[[i]] <- computeCommunProbPathway(chats[[i]])
+}
 ```
 
 ```{r}
 #Generate interaction network
-LCMA01_BEVR_CD31_Chat <- aggregateNet(LCMA01_BEVR_CD31_Chat)
+for (i in 1:length(chats)){
+  chats[[i]] <- aggregateNet(chats[[i]])
+}
 
 #Visualize interaction network
-groupSize <- as.numeric(table(LCMA01_BEVR_CD31_Chat@idents))
-par(mfrow = c(1,2), xpd=TRUE)
-netVisual_circle(LCMA01_BEVR_CD31_Chat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
-netVisual_circle(LCMA01_BEVR_CD31_Chat@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+# groupSize <- as.numeric(table(LCMA01_BEVR_CD31_Chat@idents))
+# par(mfrow = c(1,2), xpd=TRUE)
+# netVisual_circle(LCMA01_BEVR_CD31_Chat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
+# netVisual_circle(LCMA01_BEVR_CD31_Chat@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
 ```
 
 ```{r}
@@ -155,36 +204,36 @@ netVisual_circle(LCMA01_BEVR_CD31_Chat@netP$prob[,,"MHC-II"])
 
 ```{r}
 #Generate Circle Plots
-LCMA01_BEVR_CD31_Chat <- netAnalysis_computeCentrality(LCMA01_BEVR_CD31_Chat, slot.name = "netP")
-
-par(mfrow=c(5,5))
-par(mai=c(0.1, 0.1, 0.1, 0.1))
-for (pathway in LCMA01_BEVR_CD31_Chat@netP$pathways){
-  # print(pathway)
-  # netVisual_circle(LCMA01_BEVR_CD31_Chat@netP$prob[,,pathway], title.name = pathway)
-  netAnalysis_signalingRole_network(LCMA01_BEVR_CD31_Chat, signaling=pathway)
+for (i in 1:length(chats)){
+  chats[[i]] <- netAnalysis_computeCentrality(chats[[i]], slot.name = "netP")
+  par(mfrow=c(5,5))
+  par(mai=c(0.1, 0.1, 0.1, 0.1))
+  for (pathway in chats[[i]]@netP$pathways){
+    print(pathway)
+    netVisual_circle(chats[[i]]@netP$prob[,,pathway], title.name = pathway)
+  }
 }
+
 ```
 
 ```{r}
 
-LCMA01_BEVR_CD31_Chat <- computeNetSimilarity(LCMA01_BEVR_CD31_Chat, type = "functional")
-LCMA01_BEVR_CD31_Chat <- netEmbedding(LCMA01_BEVR_CD31_Chat, type = "functional")
-LCMA01_BEVR_CD31_Chat <- netClustering(LCMA01_BEVR_CD31_Chat, type = "functional")
-# Visualization in 2D-space
-netVisual_embedding(LCMA01_BEVR_CD31_Chat, type = "functional", label.size = 3.5)
-# netVisual_embeddingZoomIn(LCMA01_BEVR_CD31_Chat, type = "functional", nCol = 2)
+# for (i in 1:length(chats)){
+#   chats[[i]] <- computeNetSimilarity(chats[[i]], type = "functional")
+#   chats[[i]] <- netClustering(chats[[i]], type = "functional")
+# }
+# 
+# # Visualization in 2D-space
+# netVisual_embedding(chats[[i]], type = "functional", label.size = 3.5)
+# # netVisual_embeddingZoomIn(chats[[i]], type = "functional", nCol = 2)
 ```
 
 ```{r}
-## Visualize cell-cell communication mediated by multiple ligand-receptors or signaling pathways
-# show all the significant interactions (L-R pairs) from some cell groups (defined by 'sources.use') to other cell groups (defined by 'targets.use')
+
 netVisual_bubble(LCMA01_BEVR_CD31_Chat, sources.use = c(1:12), targets.use = c(1:12), remove.isolate = FALSE)
 ```
 
 ```{r}
-netVisual_chord_gene(LCMA01_BEVR_CD31_Chat, sources.use = 3, targets.use = 3, signaling = LCMA01_BEVR_CD31_Chat@netP$pathways)
-```
 
 
 

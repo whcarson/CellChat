@@ -1,11 +1,10 @@
 Clear global environment and load libraries
 ```{r}
 rm(list=ls())
-library(CellChat)Sp
+library(CellChat)
 library(patchwork)
 library(dplyr)
 library(Seurat)
-library(SeuratData)
 options(stringsAsFactors = FALSE)
 seurats <- c()
 names <- c()
@@ -58,7 +57,6 @@ Seurat Data Prep
 ```{r}
 
 for (i in 1:length(seurats)){
-  print(i)
   seurats[[i]] <- NormalizeData(seurats[[i]], normalization.method = "LogNormalize", scale.factor = 10000)
   seurats[[i]] <- FindVariableFeatures(seurats[[i]], selection.method = "vst", nfeatures=2000)
   all_genes <- rownames(seurats[[i]])
@@ -101,11 +99,17 @@ Create Cell Chats
 #   }
 # }
 
-
 for (i in 1:length(seurats)){
   #Assign New Cluster Names
-  seurats[[i]]$seurat_clusters <- as.factor(as.numeric(as.character(seurats[[i]]$seurat_clusters)) + 1)
-  
+  vals <- as.numeric(as.character(seurats[[i]]$seurat_clusters))
+  if (min(vals) == 0){
+    seurats[[i]]$seurat_clusters <- as.factor(vals + 1)
+  } else {
+    while(min(vals) > 1){
+      vals <- as.numeric(as.character(seurats[[i]]$seurat_clusters))
+      seurats[[i]]$seurat_clusters <- as.factor(vals - 1)
+    }
+  }
   #Make Cell Chat Object
   chat_name <- attributes(seurats[[i]])$name
   for (c_name in chat_names){
@@ -115,12 +119,15 @@ for (i in 1:length(seurats)){
   }
   if (duplicate) {
     duplicate <- FALSE
+    print("test")
     next
   } else {
-    names <- append(names, file_name)
+    chat_names <- append(chat_names, chat_name)
   }
   chats <- append(chats, createCellChat(object = seurats[[i]], group.by="seurat_clusters"))
 }
+MergedChat <- mergeCellChat(chats, file_names, cell.prefix=TRUE)
+chats <- append(chats, MergedChat)
 ```
 
 Set Database to Use
@@ -231,5 +238,5 @@ MergedChats <- mergeCellChat(chats, file_names, cell.prefix=TRUE)
 ```
 
 ```{r}
-rankNet(chats[[1]], mode="single", measure="weight", sources.use=c(1:13), targets.use=c(1:13), comparison=c(1))
+rankNet(MergedChats, mode="comparison", measure="weight", sources.use=c(1,2), targets.use=c(1,2), )
 ```

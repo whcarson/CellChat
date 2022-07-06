@@ -1,19 +1,22 @@
 Clear global environment and load libraries
 ```{r}
 rm(list=ls())
-library(CellChat)
+library(CellChat)Sp
 library(patchwork)
 library(dplyr)
 library(Seurat)
+library(SeuratData)
 options(stringsAsFactors = FALSE)
 seurats <- c()
 names <- c()
+chats <- c()
+chat_names <- c()
 ```
 
 Read in Sequencing Matrix
 ```{r}
-file_names <- c("LCMA01_BEVR_CD31")
-positions <- c(1)
+file_names <- c("LCMA01_BEVR_CD31", "LCMA04_GBM_CD31", "LCMA05_BEVR_Unsorted", "LCMA06_GBM_Unsorted", "LCMA11_BEVR_unpaired")
+positions <- c(1, 2, 3, 4, 5)
 
 duplicate <- FALSE
 
@@ -26,7 +29,7 @@ for (i in 1:length(file_names)){
   }
   if (duplicate) {
     duplicate <- FALSE
-    break
+    next
   } else {
     names <- append(names, file_name)
   }
@@ -55,7 +58,7 @@ Seurat Data Prep
 ```{r}
 
 for (i in 1:length(seurats)){
-  seurat <- seurats[[i]]
+  print(i)
   seurats[[i]] <- NormalizeData(seurats[[i]], normalization.method = "LogNormalize", scale.factor = 10000)
   seurats[[i]] <- FindVariableFeatures(seurats[[i]], selection.method = "vst", nfeatures=2000)
   all_genes <- rownames(seurats[[i]])
@@ -86,7 +89,7 @@ for (i in 1:length(seurats)){
 }
 ```
 
-Create Cell Chat
+Create Cell Chats
 ```{r}
 #Identify Cluster Markers
 
@@ -98,8 +101,7 @@ Create Cell Chat
 #   }
 # }
 
-chats <- c()
-chat_names <- c()
+
 for (i in 1:length(seurats)){
   #Assign New Cluster Names
   seurats[[i]]$seurat_clusters <- as.factor(as.numeric(as.character(seurats[[i]]$seurat_clusters)) + 1)
@@ -113,7 +115,7 @@ for (i in 1:length(seurats)){
   }
   if (duplicate) {
     duplicate <- FALSE
-    break
+    next
   } else {
     names <- append(names, file_name)
   }
@@ -141,6 +143,7 @@ for (i in 1:length(chats)){
 }
 ```
 
+
 Calculate Relative Expression
 ```{r}
 # subset the expression data of signaling genes for saving computation cost
@@ -160,7 +163,7 @@ for (i in 1:length(chats)){
 
 ```
 
-Compute Probability that Two Cell Classes Communicate Through Given Pathway
+Compute Probability that Two Cell Classes Communicate
 
 WARNING: COMPUTATIONALLY EXPENSIVE!!! 
 ```{r}
@@ -171,6 +174,7 @@ for (i in 1:length(chats)){
   chats[[i]] <- filterCommunication(chats[[i]], min.cells = 10)
 }
 ```
+
 Generate Data Frames Containing Communication Networks
 ```{r}
 i = 1
@@ -178,12 +182,14 @@ net_DF <- subsetCommunication(chats[[i]])
 netP_DF <- subsetCommunication(chats[[i]], slot.name = "netP")
 ```
 
+Compute Probability that Two Cell Classes Communicate, Organized by Pathway
 ```{r}
 for (i in 1:length(chats)){
   chats[[i]] <- computeCommunProbPathway(chats[[i]])
 }
 ```
 
+Add Communication Network to CellChat Object, Overall and Pathway Specific
 ```{r}
 #Generate interaction network
 for (i in 1:length(chats)){
@@ -197,11 +203,7 @@ for (i in 1:length(chats)){
 # netVisual_circle(LCMA01_BEVR_CD31_Chat@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
 ```
 
-```{r}
-#Visualize MHC-II pathway interactions
-netVisual_circle(LCMA01_BEVR_CD31_Chat@netP$prob[,,"MHC-II"])
-```
-
+Generate Circle Plots of Most Highly Expressed Pathways
 ```{r}
 #Generate Circle Plots
 for (i in 1:length(chats)){
@@ -213,27 +215,21 @@ for (i in 1:length(chats)){
     netVisual_circle(chats[[i]]@netP$prob[,,pathway], title.name = pathway)
   }
 }
-
 ```
 
 ```{r}
+for (i in 1:length(chats)){
+  len <- length(unique(chats[[i]]@meta$seurat_clusters))
+  print(len)
+  show(netVisual_bubble(chats[[i]], sources.use = c(1:len), targets.use = c(1:len), remove.isolate = FALSE))
+}
+```
 
-# for (i in 1:length(chats)){
-#   chats[[i]] <- computeNetSimilarity(chats[[i]], type = "functional")
-#   chats[[i]] <- netClustering(chats[[i]], type = "functional")
-# }
-# 
-# # Visualization in 2D-space
-# netVisual_embedding(chats[[i]], type = "functional", label.size = 3.5)
-# # netVisual_embeddingZoomIn(chats[[i]], type = "functional", nCol = 2)
+Merge CellChats
+```{r}
+MergedChats <- mergeCellChat(chats, file_names, cell.prefix=TRUE)
 ```
 
 ```{r}
-
-netVisual_bubble(LCMA01_BEVR_CD31_Chat, sources.use = c(1:12), targets.use = c(1:12), remove.isolate = FALSE)
+rankNet(chats[[1]], mode="single", measure="weight", sources.use=c(1:13), targets.use=c(1:13), comparison=c(1))
 ```
-
-```{r}
-
-
-

@@ -10,6 +10,9 @@ options(stringsAsFactors = FALSE)
 
 Read in Sequencing Matrix
 ```{r}
+file_name <- "LCMA01_BEVR_CD31"
+position <- 1
+seurats <- c()
 
 make_Seurat <- function(file_name){
   directory_string <- paste("C:/Users/19193/OneDrive - The University of Chicago",
@@ -24,15 +27,18 @@ make_Seurat <- function(file_name){
     features = paste(directory_string, "features.tsv.gz", sep = ""),
     cells = paste(directory_string, "barcodes.tsv.gz", sep = ""))) 
   
-  assign(file_name, CreateSeuratObject(counts = LCMA01_BEVR_CD31_Mtx))
+  append(seurats, assign(file_name, CreateSeuratObject(counts = LCMA01_BEVR_CD31_Mtx)))
 }
+
+make_Seurat(file_name)
 
 ```
 
 Seurat Data Prep
 ```{r}
-LCMA01_BEVR_CD31[["percent.mt"]] <- PercentageFeatureSet(LCMA01_BEVR_CD31, pattern="^MT-")
-LCMA01_BEVR_CD31 <- subset(LCMA01_BEVR_CD31, subset= nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+for()
+
+LCMA01_BEVR_CD31 <- subset(LCMA01_BEVR_CD31, subset= nFeature_RNA > 200 & nFeature_RNA < 2500)
 
 LCMA01_BEVR_CD31 <- NormalizeData(LCMA01_BEVR_CD31, normalization.method = "LogNormalize", scale.factor = 10000)
 
@@ -110,7 +116,7 @@ LCMA01_BEVR_CD31_Chat <- identifyOverExpressedGenes(LCMA01_BEVR_CD31_Chat)
 LCMA01_BEVR_CD31_Chat <- identifyOverExpressedInteractions(LCMA01_BEVR_CD31_Chat)
 
 # project gene expression data onto PPI (Optional: when running it, USER should set `raw.use = FALSE` in the function `computeCommunProb()` in order to use the projected data)
-# cellchat <- projectData(cellchat, PPI.human)
+# LCMA01_BEVR_CD31_Chat <- projectData(LCMA01_BEVR_CD31_Chat, PPI.human)
 
 ```
 
@@ -154,10 +160,20 @@ LCMA01_BEVR_CD31_Chat <- netAnalysis_computeCentrality(LCMA01_BEVR_CD31_Chat, sl
 par(mfrow=c(5,5))
 par(mai=c(0.1, 0.1, 0.1, 0.1))
 for (pathway in LCMA01_BEVR_CD31_Chat@netP$pathways){
-  print(pathway)
+  # print(pathway)
   # netVisual_circle(LCMA01_BEVR_CD31_Chat@netP$prob[,,pathway], title.name = pathway)
   netAnalysis_signalingRole_network(LCMA01_BEVR_CD31_Chat, signaling=pathway)
 }
+```
+
+```{r}
+
+LCMA01_BEVR_CD31_Chat <- computeNetSimilarity(LCMA01_BEVR_CD31_Chat, type = "functional")
+LCMA01_BEVR_CD31_Chat <- netEmbedding(LCMA01_BEVR_CD31_Chat, type = "functional")
+LCMA01_BEVR_CD31_Chat <- netClustering(LCMA01_BEVR_CD31_Chat, type = "functional")
+# Visualization in 2D-space
+netVisual_embedding(LCMA01_BEVR_CD31_Chat, type = "functional", label.size = 3.5)
+# netVisual_embeddingZoomIn(LCMA01_BEVR_CD31_Chat, type = "functional", nCol = 2)
 ```
 
 ```{r}

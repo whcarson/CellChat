@@ -57,10 +57,12 @@ Seurat Data Prep
 ```{r}
 
 for (i in 1:length(seurats)){
+  curName <- attributes(seurats[[i]])$name
   seurats[[i]] <- NormalizeData(seurats[[i]], normalization.method = "LogNormalize", scale.factor = 10000)
   seurats[[i]] <- FindVariableFeatures(seurats[[i]], selection.method = "vst", nfeatures=2000)
   all_genes <- rownames(seurats[[i]])
   seurats[[i]]  <- ScaleData(seurats[[i]], features = all_genes, block.size = 1000)
+  attributes(seurats[[i]])$name <- curName
 }
 
 # LCMA01_BEVR_CD31 <- subset(LCMA01_BEVR_CD31, subset= nFeature_RNA > 200 & nFeature_RNA < 2500)
@@ -76,6 +78,7 @@ for (i in 1:length(seurats)){
 Create Clusters
 ```{r}
 for (i in 1:length(seurats)){
+  curName <- attributes(seurats[[i]])$name
   seurats[[i]] <- RunPCA(seurats[[i]],  features=VariableFeatures(object=seurats[[i]]))
   print(seurats[[i]][["pca"]], dims=1:15, nfeatures = 15)
 
@@ -83,7 +86,7 @@ for (i in 1:length(seurats)){
   seurats[[i]] <- FindClusters(seurats[[i]], resolution=0.5)
 
   seurats[[i]] <- RunUMAP(seurats[[i]], dims=1:10)
-  DimPlot(seurats[[i]], reduction="umap")
+  attributes(seurats[[i]])$name <- curName
 }
 ```
 
@@ -100,17 +103,20 @@ Create Cell Chats
 # }
 
 for (i in 1:length(seurats)){
+  curName <- attributes(seurats[[i]])$name
   #Assign New Cluster Names
   vals <- as.numeric(as.character(seurats[[i]]$seurat_clusters))
   if (min(vals) == 0){
     seurats[[i]]$seurat_clusters <- as.factor(vals + 1)
+    vals <- as.numeric(as.character(seurats[[i]]$seurat_clusters))
   } else {
     while(min(vals) > 1){
-      vals <- as.numeric(as.character(seurats[[i]]$seurat_clusters))
       seurats[[i]]$seurat_clusters <- as.factor(vals - 1)
+      vals <- as.numeric(as.character(seurats[[i]]$seurat_clusters))
     }
   }
   #Make Cell Chat Object
+  attributes(seurats[[i]])$name <- curName
   chat_name <- attributes(seurats[[i]])$name
   for (c_name in chat_names){
     if (c_name == chat_name){
@@ -126,8 +132,6 @@ for (i in 1:length(seurats)){
   }
   chats <- append(chats, createCellChat(object = seurats[[i]], group.by="seurat_clusters"))
 }
-MergedChat <- mergeCellChat(chats, file_names, cell.prefix=TRUE)
-chats <- append(chats, MergedChat)
 ```
 
 Set Database to Use
@@ -234,7 +238,7 @@ for (i in 1:length(chats)){
 
 Merge CellChats
 ```{r}
-MergedChats <- mergeCellChat(chats, file_names, cell.prefix=TRUE)
+BEVR_Merged <- mergeCellChat(chats[[1,3]], file_names, cell.prefix=TRUE)
 ```
 
 ```{r}

@@ -238,9 +238,21 @@ for (i in 1:length(chats)){
 
 Merge CellChats
 ```{r}
-BEVR_Merged <- mergeCellChat(chats[[1,3]], file_names, cell.prefix=TRUE)
+BEVR_Merged <- mergeCellChat(c(chats[[1]], chats[[3]]), add.names = c(chat_names[[1]], chat_names[[3]]), cell.prefix=TRUE)
+GBM_Merged <- mergeCellChat(c(chats[[2]], chats[[4]]), add.names = c(chat_names[[2]], chat_names[[4]]), cell.prefix=TRUE)
+CD31_Merged <- mergeCellChat(c(chats[[1]], chats[[2]]), add.names = c(chat_names[[1]], chat_names[[2]]), cell.prefix=TRUE)
+Unsorted_Merged <- mergeCellChat(c(chats[[3]], chats[[4]]), add.names = c(chat_names[[3]], chat_names[[4]]), cell.prefix=TRUE)
+All_Merged <- mergeCellChat(chats, add.names = chat_names, cell.prefix=TRUE)
 ```
 
 ```{r}
-rankNet(MergedChats, mode="comparison", measure="weight", sources.use=c(1,2), targets.use=c(1,2), )
+# rankNet(All_Merged, mode="comparison", measure="weight", comparison=c(1:5), stacked=TRUE)
+
+rankNet(BEVR_Merged, mode="comparison", measure="weight", stacked=TRUE)
+
+rankNet(GBM_Merged, mode="comparison", measure="weight", stacked=TRUE)
+
+rankNet(CD31_Merged, mode="comparison", measure="weight", stacked=TRUE)
+
+rankNet(Unsorted_Merged, mode="comparison", measure="weight", stacked=TRUE)
 ```

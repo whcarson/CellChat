@@ -70,3 +70,13 @@ feat <- SelectIntegrationFeatures(object.list = seurats)
 bevAnchors <- FindIntegrationAnchors(object.list = seurats, anchor.features=feat)
 seuratInt <- IntegrateData(anchorset = bevAnchors)
 ```
+
+```{r}
+DefaultAssay(seuratInt) <- "integrated"
+
+seuratInt <- ScaleData(seuratInt, verbose = FALSE)
+seuratInt <- RunPCA(seuratInt, npcs = 30, verbose = FALSE)
+seuratInt <- RunUMAP(seuratInt, reduction = "pca", dims = 1:30)
+seuratInt <- FindNeighbors(seuratInt, reduction = "pca", dims = 1:30)
+seuratInt <- FindClusters(seuratInt, resolution = 0.5)
+```

@@ -1,0 +1,72 @@
+
+Clear global environment and load libraries
+```{r}
+rm(list=ls())
+library(CellChat)
+library(patchwork)
+library(dplyr)
+library(Seurat)
+options(stringsAsFactors = FALSE)
+seurats <- c()
+names <- c()
+chats <- c()
+chat_names <- c()
+```
+
+Read in Sequencing Matrix
+```{r}
+file_names <- c("LCMA01_BEVR_CD31", "LCMA04_GBM_CD31", "LCMA05_BEVR_Unsorted", "LCMA06_GBM_Unsorted", "LCMA11_BEVR_unpaired")
+positions <- c(1, 2, 3, 4, 5)
+
+duplicate <- FALSE
+
+for (i in 1:length(file_names)){
+  file_name <- file_names[i]
+  for (name in names){
+    if (file_name == name){
+      duplicate <- TRUE
+    }
+  }
+  if (duplicate) {
+    duplicate <- FALSE
+    next
+  } else {
+    names <- append(names, file_name)
+  }
+  position <- positions[i]
+  directory_string <- paste("C:/Users/19193/OneDrive - The University of Chicago",
+                            "/Documents/UChicago/Internships etc/",
+                            "Internship Opportunities/Aghi Lab/CD31 sorted/",
+                            file_name, "/filtered_feature_bc_matrix/",
+                            sep = "")
+  
+  
+  MTX <- ReadMtx(
+    mtx = paste(directory_string, "matrix.mtx.gz", sep = ""),
+    features = paste(directory_string, "features.tsv.gz", sep = ""),
+    cells = paste(directory_string, "barcodes.tsv.gz", sep = ""))
+  
+  seurat <- CreateSeuratObject(counts = MTX)
+  seurat <- subset(seurat, subset = nFeature_RNA > 200 & nFeature_RNA < 2500)
+  attributes(seurat)$name <- file_name
+  seurats <- append(seurats, seurat, position)
+}
+
+```
+
+Normalize, Identify Variable Features
+```{r}
+for (i in 1:length(seurats)){
+  curName <- attributes(seurats[[i]])$name
+  seurats[[i]] <- NormalizeData(seurats[[i]], normalization.method = "LogNormalize", scale.factor = 10000)
+  seurats[[i]] <- FindVariableFeatures(seurats[[i]], selection.method = "vst", nfeatures=2000)
+  attributes(seurats[[i]])$name <- curName
+}
+```
+
+Integration
+```{r}
+feat <- SelectIntegrationFeatures(object.list = seurats)
+bevAnchors <- FindIntegrationAnchors(object.list = seurats, anchor.features=feat)
+seuratInt <- IntegrateData(anchorset = bevAnchors)
+```

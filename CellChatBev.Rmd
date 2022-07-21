@@ -64,16 +64,6 @@ for (i in 1:length(seurats)){
   seurats[[i]]  <- ScaleData(seurats[[i]], features = all_genes, block.size = 1000)
   attributes(seurats[[i]])$name <- curName
 }
-
-# LCMA01_BEVR_CD31 <- subset(LCMA01_BEVR_CD31, subset= nFeature_RNA > 200 & nFeature_RNA < 2500)
-# 
-# LCMA01_BEVR_CD31 <- NormalizeData(LCMA01_BEVR_CD31, normalization.method = "LogNormalize", scale.factor = 10000)
-# 
-# LCMA01_BEVR_CD31 <- FindVariableFeatures(LCMA01_BEVR_CD31, selection.method = "vst", nfeatures=2000)
-# 
-# all.genes <- rownames(LCMA01_BEVR_CD31)
-# 
-# LCMA01_BEVR_CD31 <- ScaleData(LCMA01_BEVR_CD31, features = all.genes, block.size = 1000)
 ```
 Create Clusters
 ```{r}

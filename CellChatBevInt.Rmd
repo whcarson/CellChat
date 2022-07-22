@@ -80,3 +80,17 @@ seuratInt <- RunUMAP(seuratInt, reduction = "pca", dims = 1:30)
 seuratInt <- FindNeighbors(seuratInt, reduction = "pca", dims = 1:30)
 seuratInt <- FindClusters(seuratInt, resolution = 0.5)
 ```
+
+```{r}
+lens <- c()
+for (seurat in seurats){
+  lens <- append(lens, length(seurat$orig.ident))
+}
+tot <- 0
+for (i in 1:5){
+  len <- lens[i]
+  seuratInt$orig.ident[tot+1:tot+len] <- i
+  tot <- tot + len
+  print(tot)
+}
+```

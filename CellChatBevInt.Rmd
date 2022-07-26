@@ -11,6 +11,7 @@ seurats <- c()
 names <- c()
 chats <- c()
 chat_names <- c()
+disIntChats <- c()
 ```
 
 Read in Sequencing Matrix
@@ -96,11 +97,193 @@ for (i in 1:5){
 ```
 
 ```{r}
-all_genes <- rownames(seuratInt)
-seuratInt <- ScaleData(seuratInt, features = all_genes, block.size = 1000)
-vals <- as.numeric(as.character(seuratInt$seurat_clusters))
-if (min(vals) == 0){
-  seuratInt$seurat_clusters <- as.factor(vals+1)
-}
-chatInt <- createCellChat(object = seuratInt, group.by="seurat_clusters", assay = "RNA")
+DimPlot(seuratInt, reduction = "umap", split.by = "orig.ident")
 ```
+
+Find Conserved Markers
+```{r}
+DefaultAssay(seuratInt) <- "RNA"
+cluster1Markers <- FindConservedMarkers(seuratInt, ident.1 = 2, grouping.var = "orig.ident", verbose = FALSE)
+cluster2Markers <- cluster1Markers
+head(cluster2Markers)
+
+```
+Feature Mapping
+```{r}
+FeaturePlot(seuratInt, features = c("PTN", "APP", "ICAM1"), min.cutoff = "q9", split.by = "orig.ident")
+
+```
+```{r}
+disIntSeurats <- SplitObject(seuratInt, split.by="orig.ident")
+
+```
+
+Create Cell Chats
+```{r}
+#Identify Cluster Markers
+
+# for (i in 1:length(disIntSeurats)){
+#   seurat <- disIntSeurats[[i]]
+#   for(j in 1:length(seurat@meta.data$seurat_clusters)){
+#     markerName <- paste("marker", as.character(i), as.character(j), sep="")
+#     assign(markerName, FindMarkers(LCMA01_BEVR_CD31, ident.1=j-1, min.pct=0.1))
+#   }
+# }
+
+for (i in 1:length(disIntSeurats)){
+  curName <- attributes(disIntSeurats[[i]])$name
+  #Assign New Cluster Names
+  vals <- as.numeric(as.character(disIntSeurats[[i]]$seurat_clusters))
+  if (min(vals) == 0){
+    disIntSeurats[[i]]$seurat_clusters <- as.factor(vals + 1)
+    vals <- as.numeric(as.character(disIntSeurats[[i]]$seurat_clusters))
+  } else {
+    while(min(vals) > 1){
+      disIntSeurats[[i]]$seurat_clusters <- as.factor(vals - 1)
+      vals <- as.numeric(as.character(disIntSeurats[[i]]$seurat_clusters))
+    }
+  }
+  #Make Cell Chat Object
+  attributes(disIntSeurats[[i]])$name <- curName
+  chat_name <- attributes(disIntSeurats[[i]])$name
+  for (c_name in chat_names){
+    if (c_name == chat_name){
+      duplicate <- TRUE
+    }
+  }
+  if (duplicate) {
+    duplicate <- FALSE
+    print("test")
+    next
+  } else {
+    chat_names <- append(chat_names, chat_name)
+  }
+  disIntChats <- append(disIntChats, createCellChat(object = disIntSeurats[[i]], group.by="seurat_clusters"))
+}
+```
+
+Set Database to Use
+```{r}
+
+
+"Set ligand-receptor interaction db"
+CellChatDB <- CellChatDB.human
+showDatabaseCategory(CellChatDB)
+dplyr::glimpse(CellChatDB$interaction)
+
+# use a subset of CellChatDB for cell-cell communication analysis
+# CellChatDB.use <- subsetDB(CellChatDB, search = "Secreted Signaling") # use Secreted Signaling
+# use all CellChatDB for cell-cell communication analysis
+CellChatDB.use <- CellChatDB # simply use the default CellChatDB
+
+# set the used database in the object
+for (i in 1:length(disIntChats)){
+  disIntChats[[i]]@DB <- CellChatDB.use
+}
+```
+
+Calculate Relative Expression
+```{r}
+# subset the expression data of signaling genes for saving computation cost
+for (i in 1:length(disIntChats)){
+  disIntChats[[i]]@DB <- CellChatDB.use
+  disIntChats[[i]] <- subsetData(disIntChats[[i]]) # This step is necessary even if using the whole database
+  disIntChats[[i]] <- identifyOverExpressedGenes(disIntChats[[i]])
+  disIntChats[[i]] <- identifyOverExpressedInteractions(disIntChats[[i]])
+  
+  # project gene expression data onto PPI (Optional: when running it, USER should set `raw.use = FALSE` in the function `computeCommunProb()` in order to use the projected data)
+
+  # chats[[i]] <- projectData(chats[[i]], PPI.human)
+}
+
+
+
+
+```
+Compute Probability that Two Cell Classes Communicate
+
+WARNING: COMPUTATIONALLY EXPENSIVE!!! 
+```{r}
+future::plan("multisession", workers=4)
+for (i in 1:length(disIntChats)){
+  disIntChats[[i]] <- computeCommunProb(disIntChats[[i]])
+  # Filter out the cell-cell communication if there are only few number of cells in certain cell groups
+  disIntChats[[i]] <- filterCommunication(disIntChats[[i]], min.cells = 10)
+}
+```
+
+Generate Data Frames Containing Communication Networks
+```{r}
+i = 1
+net_DF <- subsetCommunication(disIntChats[[i]])
+netP_DF <- subsetCommunication(disIntChats[[i]], slot.name = "netP")
+```
+
+Compute Probability that Two Cell Classes Communicate, Organized by Pathway
+```{r}
+for (i in 1:length(disIntChats)){
+  disIntChats[[i]] <- computeCommunProbPathway(disIntChats[[i]])
+}
+```
+
+Add Communication Network to CellChat Object, Overall and Pathway Specific
+```{r}
+#Generate interaction network
+for (i in 1:length(disIntChats)){
+  disIntChats[[i]] <- aggregateNet(disIntChats[[i]])
+}
+
+#Visualize interaction network
+# groupSize <- as.numeric(table(LCMA01_BEVR_CD31_Chat@idents))
+# par(mfrow = c(1,2), xpd=TRUE)
+# netVisual_circle(LCMA01_BEVR_CD31_Chat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
+# netVisual_circle(LCMA01_BEVR_CD31_Chat@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+```
+
+Generate Circle Plots of Most Highly Expressed Pathways
+```{r}
+#Generate Circle Plots
+for (i in 1:length(disIntChats)){
+  disIntChats[[i]] <- netAnalysis_computeCentrality(disIntChats[[i]], slot.name = "netP")
+  par(mfrow=c(5,5))
+  par(mai=c(0.1, 0.1, 0.1, 0.1))
+  for (pathway in disIntChats[[i]]@netP$pathways){
+    print(pathway)
+    netVisual_circle(disIntChats[[i]]@netP$prob[,,pathway], title.name = pathway)
+  }
+}
+```
+
+```{r}
+for (i in 1:length(disIntChats)){
+  len <- length(unique(disIntChats[[i]]@meta$seurat_clusters))
+  print(len)
+  show(netVisual_bubble(disIntChats[[i]], sources.use = c(1:len), targets.use = c(1:len), remove.isolate = FALSE))
+}
+```
+
+Merge CellChats
+```{r}
+BEVR_Merged <- mergeCellChat(c(disIntChats[[1]], disIntChats[[3]]), add.names = c(chat_names[[1]], chat_names[[3]]), cell.prefix=TRUE)
+GBM_Merged <- mergeCellChat(c(disIntChats[[2]], disIntChats[[4]]), add.names = c(chat_names[[2]], chat_names[[4]]), cell.prefix=TRUE)
+CD31_Merged <- mergeCellChat(c(disIntChats[[1]], disIntChats[[2]]), add.names = c(chat_names[[1]], chat_names[[2]]), cell.prefix=TRUE)
+Unsorted_Merged <- mergeCellChat(c(disIntChats[[3]], disIntChats[[4]]), add.names = c(chat_names[[3]], chat_names[[4]]), cell.prefix=TRUE)
+All_Merged <- mergeCellChat(disIntChats, add.names = chat_names, cell.prefix=TRUE)
+```
+
+# all_genes <- rownames(seuratInt)
+# seuratInt <- ScaleData(seuratInt, features = all_genes, block.size = 1000)
+# vals <- as.numeric(as.character(seuratInt$seurat_clusters))
+# if (min(vals) == 0){
+#   seuratInt$seurat_clusters <- as.factor(vals+1)
+# }
+# chatInt <- createCellChat(object = seuratInt, group.by="seurat_clusters", assay = "RNA")
+
+# CellChatDB <- CellChatDB.human
+# showDatabaseCategory(CellChatDB)
+# dplyr::glimpse(CellChatDB$interaction)
+# chatInt@DB <- CellChatDB
+# 
+# chatInt <- subsetData(chatInt) # This step is necessary even if using the whole database
+# chatInt <- identifyOverExpressedGenes(chatInt)
+# chatInt <- identifyOverExpressedInteractions(chatInt)

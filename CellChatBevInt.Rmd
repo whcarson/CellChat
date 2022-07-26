@@ -204,8 +204,13 @@ Compute Probability that Two Cell Classes Communicate
 
 WARNING: COMPUTATIONALLY EXPENSIVE!!! 
 ```{r}
-future::plan("multisession", workers=4)
 for (i in 1:length(disIntChats)){
+  disIntChats[[i]]@meta$seurat_clusters <- droplevels(disIntChats[[i]]@meta$seurat_clusters, exclude=setdiff(levels(disIntChats[[i]]@meta$seurat_clusters),unique(disIntChats[[i]]@meta$seurat_clusters)))
+  disIntChats[[i]]@idents <- droplevels(disIntChats[[i]]@idents, exclude=setdiff(levels(disIntChats[[i]]@idents),unique(disIntChats[[i]]@idents)))
+}
+future::plan("multisession", workers=10)
+for (i in 1:length(disIntChats)){
+  disIntChats[[i]]@meta$seurat_clusters <- droplevels(disIntChats[[i]]@meta$seurat_clusters, exclude=setdiff(levels(disIntChats[[i]]@meta$seurat_clusters),unique(disIntChats[[i]]@meta$seurat_clusters)))
   disIntChats[[i]] <- computeCommunProb(disIntChats[[i]])
   # Filter out the cell-cell communication if there are only few number of cells in certain cell groups
   disIntChats[[i]] <- filterCommunication(disIntChats[[i]], min.cells = 10)
@@ -264,11 +269,23 @@ for (i in 1:length(disIntChats)){
 
 Merge CellChats
 ```{r}
-BEVR_Merged <- mergeCellChat(c(disIntChats[[1]], disIntChats[[3]]), add.names = c(chat_names[[1]], chat_names[[3]]), cell.prefix=TRUE)
-GBM_Merged <- mergeCellChat(c(disIntChats[[2]], disIntChats[[4]]), add.names = c(chat_names[[2]], chat_names[[4]]), cell.prefix=TRUE)
-CD31_Merged <- mergeCellChat(c(disIntChats[[1]], disIntChats[[2]]), add.names = c(chat_names[[1]], chat_names[[2]]), cell.prefix=TRUE)
-Unsorted_Merged <- mergeCellChat(c(disIntChats[[3]], disIntChats[[4]]), add.names = c(chat_names[[3]], chat_names[[4]]), cell.prefix=TRUE)
-All_Merged <- mergeCellChat(disIntChats, add.names = chat_names, cell.prefix=TRUE)
+BEVR_Merged <- mergeCellChat(c(disIntChats[[1]], disIntChats[[3]]), add.names = c(names[[1]], names[[3]]), cell.prefix=TRUE)
+GBM_Merged <- mergeCellChat(c(disIntChats[[2]], disIntChats[[4]]), add.names = c(names[[2]], names[[4]]), cell.prefix=TRUE)
+CD31_Merged <- mergeCellChat(c(disIntChats[[1]], disIntChats[[2]]), add.names = c(names[[1]], names[[2]]), cell.prefix=TRUE)
+Unsorted_Merged <- mergeCellChat(c(disIntChats[[3]], disIntChats[[4]]), add.names = c(names[[3]], names[[4]]), cell.prefix=TRUE)
+All_Merged <- mergeCellChat(disIntChats, add.names = names, cell.prefix=TRUE)
+```
+
+```{r}
+# rankNet(All_Merged, mode="comparison", measure="weight", comparison=c(1:5), stacked=TRUE)
+
+rankNet(BEVR_Merged, mode="comparison", measure="weight", stacked=TRUE)
+
+rankNet(GBM_Merged, mode="comparison", measure="weight", stacked=TRUE)
+
+rankNet(CD31_Merged, mode="comparison", measure="weight", stacked=TRUE)
+
+rankNet(Unsorted_Merged, mode="comparison", measure="weight", stacked=TRUE)
 ```
 
 # all_genes <- rownames(seuratInt)
